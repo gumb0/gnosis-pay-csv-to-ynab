@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gnosis Pay to YNAB"
+  short_description: "Convert Gnosis Pay CSV exports into YNAB import CSV format."
+  default_prompt: "Convert a Gnosis Pay CSV export to YNAB format using date, merchant_name, and inverted billing_amount."
