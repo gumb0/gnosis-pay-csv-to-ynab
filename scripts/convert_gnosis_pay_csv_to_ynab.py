@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-REQUIRED_COLUMNS = {"date", "merchant_name", "billing_amount"}
+REQUIRED_COLUMNS = {"date", "merchant_name", "billing_amount", "status"}
 DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
 
 
@@ -18,14 +18,23 @@ def normalize_date(value: str) -> str:
     return match.group(1)
 
 
-def to_negative(value: str) -> str:
+def normalize_amount(value: str) -> str:
     amount = value.strip()
     if not amount:
         raise ValueError("Empty billing_amount value")
-    amount = amount.lstrip("+")
-    if amount.startswith("-"):
-        return amount
-    return f"-{amount}"
+    return amount.lstrip("+-")
+
+
+def amount_from_status(status: str, billing_amount: str) -> str | None:
+    normalized_status = status.strip()
+    absolute_amount = normalize_amount(billing_amount)
+    if normalized_status == "Approved":
+        return f"-{absolute_amount}"
+    if normalized_status == "Reversal":
+        return absolute_amount
+    if normalized_status == "InsufficientFunds":
+        return None
+    raise ValueError(f"Unsupported status value: {status!r}")
 
 
 def convert(input_path: Path, output_path: Path) -> None:
@@ -41,12 +50,15 @@ def convert(input_path: Path, output_path: Path) -> None:
             writer.writerow(["Date", "Payee", "Memo", "Amount"])
 
             for row in reader:
+                amount = amount_from_status(row["status"], row["billing_amount"])
+                if amount is None:
+                    continue
                 writer.writerow(
                     [
                         normalize_date(row["date"]),
                         row["merchant_name"],
                         "",
-                        to_negative(row["billing_amount"]),
+                        amount,
                     ]
                 )
 
