@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-REQUIRED_COLUMNS = {"date", "merchant_name", "billing_amount", "status"}
+REQUIRED_COLUMNS = {"date", "merchant_name", "billing_amount", "status", "kind"}
 DATE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})")
 
 
@@ -25,13 +25,18 @@ def normalize_amount(value: str) -> str:
     return amount.lstrip("+-")
 
 
-def amount_from_status(status: str, billing_amount: str) -> str | None:
+def amount_from_status(status: str, kind: str, billing_amount: str) -> str | None:
     normalized_status = status.strip()
+    normalized_kind = kind.strip()
     absolute_amount = normalize_amount(billing_amount)
     if normalized_status == "Approved":
         return f"-{absolute_amount}"
     if normalized_status == "Reversal":
-        return absolute_amount
+        if normalized_kind == "Payment":
+            return f"-{absolute_amount}"
+        if normalized_kind == "Reversal":
+            return absolute_amount
+        raise ValueError(f"Unsupported kind for Reversal status: {kind!r}")
     if normalized_status in {"InsufficientFunds", "Other"}:
         return None
     raise ValueError(f"Unsupported status value: {status!r}")
@@ -50,7 +55,9 @@ def convert(input_path: Path, output_path: Path) -> None:
             writer.writerow(["Date", "Payee", "Memo", "Amount"])
 
             for row in reader:
-                amount = amount_from_status(row["status"], row["billing_amount"])
+                amount = amount_from_status(
+                    row["status"], row["kind"], row["billing_amount"]
+                )
                 if amount is None:
                     continue
                 writer.writerow(
