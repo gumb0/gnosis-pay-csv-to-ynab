@@ -26,6 +26,7 @@ python3 scripts/convert_gnosis_pay_csv_to_ynab.py <input.csv> <output.csv>
   - if `status` is `Approved`, output as negative
   - if `status` is `Reversal`, output as positive
   - if `status` is `InsufficientFunds`, skip the row entirely (do not output it)
+  - if `status` is `Other`, skip the row entirely (do not output it)
 
 ## Notes
 

@@ -32,7 +32,7 @@ def amount_from_status(status: str, billing_amount: str) -> str | None:
         return f"-{absolute_amount}"
     if normalized_status == "Reversal":
         return absolute_amount
-    if normalized_status == "InsufficientFunds":
+    if normalized_status in {"InsufficientFunds", "Other"}:
         return None
     raise ValueError(f"Unsupported status value: {status!r}")
 
